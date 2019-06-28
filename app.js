@@ -8,6 +8,8 @@ const hbs = require('hbs')
 const mongoose = require('mongoose')
 const logger = require('morgan')
 const path = require('path')
+const session = require('express-session')
+const MongoStore = require('connect-mongo')(session)
 
 mongoose
   .connect('mongodb://joss:joss123@ds245387.mlab.com:45387/bcrypt', {
@@ -42,6 +44,27 @@ app.use(
     sourceMap: true
   })
 )
+
+app.use(
+  session({
+    secret: 'ultrasecreto, esto va en .env',
+    cookie: {maxAge: 60000},
+    resave: true,
+    saveUninitialized: false,
+    store: new MongoStore({
+      mongooseConnection: mongoose.connection,
+      ttl: 24 * 60 * 60
+    })
+  })
+)
+
+function checkSession(req, res, next) {
+  if (req.session.currentUser) {
+    next()
+  } else {
+    res.redirect('/auth/login')
+  }
+}
 
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'hbs')
